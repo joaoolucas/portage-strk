@@ -1,11 +1,27 @@
 "use client";
 
+import dynamic from "next/dynamic";
+
 import { MARKET_STOCK, buyPrice, itemDef, sellPrice } from "@/game/world/items";
-import WalletAccountV6Tag from "../client/WalletHandle/WalletAccountV6Tag";
 import GameWindow from "./GameWindow";
 import ItemIcon from "./ItemIcon";
 import type { GameSim } from "./useGameSim";
 import styles from "./client.module.css";
+
+/**
+ * The privacy drawer, loaded after the counter rather than with it.
+ *
+ * This is the one thing on the screen that needs starknet.js, and it is the
+ * bottom third of a window whose top two thirds are gold and tonics. Pulling
+ * it in eagerly put the whole of starknet on the game's first load; making the
+ * whole window wait on it meant a click that lit the tab and then showed
+ * nothing for as long as the chunk took. Deferring just the drawer gets both:
+ * the counter opens at once and the drawer fills in below it.
+ */
+const WalletAccountV6Tag = dynamic(() => import("../client/WalletHandle/WalletAccountV6Tag"), {
+  ssr: false,
+  loading: () => <p className={styles.chainPending}>Loading the STRK counter…</p>,
+});
 
 /**
  * The trading post.

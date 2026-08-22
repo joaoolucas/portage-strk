@@ -184,6 +184,10 @@
    not reflow when the wallet arrives. */
 .walletPending { display: inline-block; width: 96px; height: 35px; border-radius: 999px; background: var(--pink-soft, rgba(217, 154, 60, .14)); }
 
+/* The privacy drawer says it is coming rather than leaving a hole under the
+   counter. It sits in the same box the drawer will fill. */
+.chainPending { padding: 18px; color: var(--dim); font-size: 11px; letter-spacing: .08em; }
+
 .saveState { display: flex; align-items: center; gap: 7px; color: var(--dim); font-size: 9px; letter-spacing: .12em; }
 .dotLive, .dotError { width: 8px; height: 8px; }
 .dotLive { background: #63c264; box-shadow: 0 0 7px #63c264; }

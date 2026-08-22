@@ -13,26 +13,26 @@ import ItemIcon from "./ItemIcon";
 import UiIcon, { type UiIconName } from "./UiIcon";
 import { BackpackWindow, Container, PotionChoice } from "./Inventory";
 import MapWindow from "./MapWindow";
+import MarketWindow from "./MarketWindow";
 import SkillsWindow from "./SkillsWindow";
 import Viewport from "./Viewport";
 import { useGameSim } from "./useGameSim";
 import styles from "./client.module.css";
 
 /**
- * The two doors onto starknet.js, held out of the first load.
+ * The wallet picker, kept out of the first load.
  *
- * The wallet picker and the trading post between them pull starknet.js, its
- * crypto primitives and the wallet-standard discovery store — the largest
- * single thing the client ships, and none of it is needed to put the world on
- * screen. You can hunt and haul for a whole session without touching either.
- * The market only ever renders once you open it, and the Connect pill can
- * arrive a beat after the canvas, so both load as their own chunks.
+ * starknet.js and the wallet-standard discovery store are the largest single
+ * thing this client ships, and nothing in the world needs them: you can hunt
+ * and haul for a whole session without ever connecting. The pill arrives a
+ * beat after the canvas, behind a placeholder its own size so the topbar does
+ * not reflow. The market's half of that split lives in MarketWindow, which
+ * opens instantly and fills its privacy drawer in afterwards.
  */
 const SelectWallet = dynamic(() => import("../client/WalletHandle/SelectWallet"), {
   ssr: false,
   loading: () => <span className={styles.walletPending} aria-hidden />,
 });
-const MarketWindow = dynamic(() => import("./MarketWindow"), { ssr: false });
 
 /**
  * The game client.
