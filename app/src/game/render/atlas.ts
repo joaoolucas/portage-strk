@@ -21,6 +21,8 @@ export interface Sprite {
 interface AtlasData {
   image: HTMLImageElement;
   frames: Record<string, { x: number; y: number; w: number; h: number }>;
+  /** Present on character sheets: the clip table build-atlas.mjs folded in. */
+  animations: Record<string, unknown>;
 }
 
 const atlases = new Map<string, AtlasData | null>();
@@ -41,7 +43,7 @@ export function loadAtlas(name: string): Promise<void> {
           element.src = `${ROOT}/${name}.png`;
         }),
       ]);
-      atlases.set(name, meta && image ? { image, frames: meta.frames } : null);
+      atlases.set(name, meta && image ? { image, frames: meta.frames, animations: meta.animations ?? {} } : null);
     } catch {
       atlases.set(name, null);
     }
@@ -72,6 +74,16 @@ export function drawSprite(
   dh: number,
 ): void {
   ctx.drawImage(sprite.image, sprite.x, sprite.y, sprite.w, sprite.h, Math.round(dx), Math.round(dy), dw, dh);
+}
+
+/**
+ * The clip table packed into a character sheet, or null before it lands.
+ *
+ * This used to be a separate pixellab.json fetch per character. Folding it into
+ * the sheet's metadata halves the requests a biome makes on a cold load.
+ */
+export function getAnimations(name: string): Record<string, unknown> | null {
+  return atlases.get(name)?.animations ?? null;
 }
 
 /** The URL of a whole sheet, for DOM elements that show one frame via CSS. */

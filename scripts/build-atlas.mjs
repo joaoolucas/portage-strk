@@ -38,7 +38,7 @@ function characterFrames(dir) {
  * Lay frames out in a square-ish grid. Frames are uniform for a given source,
  * so a fixed cell size is enough and no bin packing is needed.
  */
-async function pack(name, entries, outDir) {
+async function pack(name, entries, outDir, extra = {}) {
   if (!entries.length) return null;
   const first = await sharp(entries[0].file).metadata();
   const cell = Math.max(first.width ?? 0, first.height ?? 0);
@@ -67,9 +67,20 @@ async function pack(name, entries, outDir) {
 
   fs.writeFileSync(
     path.join(outDir, `${name}.json`),
-    `${JSON.stringify({ cell, columns, rows, count: entries.length, frames }, null, 0)}\n`,
+    `${JSON.stringify({ cell, columns, rows, count: entries.length, frames, ...extra }, null, 0)}\n`,
   );
   return { imagePath, count: entries.length, bytes: fs.statSync(imagePath).size };
+}
+
+/** A character's clip table as PixelLab generated it; absent for hand-made folders. */
+function readAnimations(dir) {
+  const manifest = path.join(dir, "pixellab.json");
+  if (!fs.existsSync(manifest)) return {};
+  try {
+    return JSON.parse(fs.readFileSync(manifest, "utf8")).animations ?? {};
+  } catch {
+    return {};
+  }
 }
 
 async function buildCharacters() {
@@ -85,7 +96,10 @@ async function buildCharacters() {
       file: path.join(dir, file),
     }));
     if (checkOnly) { packed += 1; frames += entries.length; continue; }
-    const result = await pack(id, entries, path.join(OUT, "characters"));
+    // The animation manifest rides along inside the sheet. It used to be a
+    // second request per character, and a biome shows twenty-odd of them:
+    // forty round trips before the first monster could pick a walk frame.
+    const result = await pack(id, entries, path.join(OUT, "characters"), { animations: readAnimations(dir) });
     if (result) { packed += 1; frames += result.count; }
   }
   console.log(`  characters: ${packed} atlases, ${frames} frames`);

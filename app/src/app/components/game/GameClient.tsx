@@ -1,23 +1,38 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { zoneFor } from "@/game/world/zones";
 import { PLAYER_ID, companionAttack, expForLevel, playerDefense, playerOf } from "@/game/sim/state";
 import { capacity, inventoryWeight } from "@/game/world/items";
 import { canReach } from "@/game/sim/actions";
-import SelectWallet from "../client/WalletHandle/SelectWallet";
 import BattleLog from "./BattleLog";
 import CreatureIcon from "./CreatureIcon";
 import ItemIcon from "./ItemIcon";
 import UiIcon, { type UiIconName } from "./UiIcon";
 import { BackpackWindow, Container, PotionChoice } from "./Inventory";
 import MapWindow from "./MapWindow";
-import MarketWindow from "./MarketWindow";
 import SkillsWindow from "./SkillsWindow";
 import Viewport from "./Viewport";
 import { useGameSim } from "./useGameSim";
 import styles from "./client.module.css";
+
+/**
+ * The two doors onto starknet.js, held out of the first load.
+ *
+ * The wallet picker and the trading post between them pull starknet.js, its
+ * crypto primitives and the wallet-standard discovery store — the largest
+ * single thing the client ships, and none of it is needed to put the world on
+ * screen. You can hunt and haul for a whole session without touching either.
+ * The market only ever renders once you open it, and the Connect pill can
+ * arrive a beat after the canvas, so both load as their own chunks.
+ */
+const SelectWallet = dynamic(() => import("../client/WalletHandle/SelectWallet"), {
+  ssr: false,
+  loading: () => <span className={styles.walletPending} aria-hidden />,
+});
+const MarketWindow = dynamic(() => import("./MarketWindow"), { ssr: false });
 
 /**
  * The game client.

@@ -1,7 +1,7 @@
 import type { Direction8 } from "../core/grid";
 import { cardinalOf } from "../core/grid";
 import type { EntityState } from "../core/types";
-import { getSprite, loadAtlas, type Sprite } from "./atlas";
+import { getAnimations, getSprite, loadAtlas, type Sprite } from "./atlas";
 
 /**
  * Animation lookup, driven by each character's generated manifest.
@@ -22,45 +22,35 @@ export interface AnimationClip {
   template: string;
 }
 
-export interface CharacterManifest {
-  animations: Partial<Record<ClipName, AnimationClip>>;
-}
+export type ClipTable = Partial<Record<ClipName, AnimationClip>>;
 
-const manifests = new Map<CharacterId, CharacterManifest | null>();
 const pending = new Map<CharacterId, Promise<void>>();
 
 export function atlasNameOf(id: CharacterId): string {
   return `characters/${id}`;
 }
 
-export function manifestOf(id: CharacterId): CharacterManifest | null {
-  return manifests.get(id) ?? null;
+/** The character's clip table, or null until its sheet has landed. */
+export function clipsOf(id: CharacterId): ClipTable | null {
+  return getAnimations(atlasNameOf(id)) as ClipTable | null;
 }
 
 /**
- * Load a character: one atlas request and one manifest request, rather than the
- * sixty-odd individual frame requests this used to make.
+ * Load a character: one request for the sheet, which carries both the packed
+ * frames and the clip table. It was two requests each, and sixty-odd before
+ * that; a biome shows twenty characters, so the difference is a cold load that
+ * renders monsters as placeholder blocks and one that does not.
  */
 export function loadCharacter(id: CharacterId): Promise<void> {
   const existing = pending.get(id);
   if (existing) return existing;
-  const task = (async () => {
-    const manifestTask = fetch(`/game-assets/world/characters/${id}/pixellab.json`)
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data) => {
-        manifests.set(id, data ? { animations: data.animations ?? {} } : { animations: {} });
-      })
-      .catch(() => {
-        manifests.set(id, { animations: {} });
-      });
-    await Promise.all([loadAtlas(atlasNameOf(id)), manifestTask]);
-  })();
+  const task = loadAtlas(atlasNameOf(id));
   pending.set(id, task);
   return task;
 }
 
 function clipFrameKey(id: CharacterId, name: ClipName, direction: Direction8, phase: number): string | null {
-  const clip = manifestOf(id)?.animations?.[name];
+  const clip = clipsOf(id)?.[name];
   if (!clip || clip.frames <= 0) return null;
   // Clips are authored for the cardinals; a diagonal borrows its dominant axis.
   const wanted = cardinalOf(direction);
@@ -117,6 +107,6 @@ export function resolveFrame(request: FrameRequest): Sprite | undefined {
 
 /** True when the character has a real death clip rather than needing a fade. */
 export function hasDeathClip(id: CharacterId): boolean {
-  const clip = manifestOf(id)?.animations?.death;
+  const clip = clipsOf(id)?.death;
   return Boolean(clip && clip.frames > 0);
 }
